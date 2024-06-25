@@ -15,9 +15,15 @@ class ViewController: UIViewController, ARSCNViewDelegate, UIGestureRecognizerDe
     @IBOutlet weak var sceneView: ARSCNView!
     
  
-    // 핸드드래그용 노드 추가
+    // 제스쳐용 플래그 추가
+    
+    // 선택된 노드를 확인하는 변수
     var selectedNode: SCNNode?
+    
+    // 노드의 기존 위치를 저장하는 변수(펜-드래그- 제스쳐를 이용하여 객체를 이동시킬때 기존위치를 저장합니다)
     var originalNodePosition: SCNVector3?
+    
+    // 노드의 기존 스케일을 저장하는 변수(핀치 제스쳐를 이용하여 객체를 늘이고 줄일때 사용합니다)
     var originalScale: SCNVector3?
 
     
@@ -36,9 +42,6 @@ class ViewController: UIViewController, ARSCNViewDelegate, UIGestureRecognizerDe
         
         // 제스처 인식기 추가(제스쳐를 화면에서 인식할 수 있게 합니다)
         addGestureRecognizers()
-        
-        setupDismissButton()
-       // setupOpenModelButton()
         
         // 모델이름을 넣어 usdz 파일의 모델을 업로드 할 수 있습니다. 여기서는 art.scnassets폴더에 있는 usdz 샘플파일인 Candle_Animated를 넣었습니다.
         loadUSDZModel(model: "Candle_Animated")
@@ -84,70 +87,6 @@ class ViewController: UIViewController, ARSCNViewDelegate, UIGestureRecognizerDe
     func sessionInterruptionEnded(_ session: ARSession) {
         // Reset tracking and/or remove existing anchors if consistent tracking is required
         
-    }
-    func setupDismissButton() {
-        let dismissButton = UIButton(type: .system)
-        dismissButton.addTarget(self, action: #selector(dismissButtonTapped), for: .touchUpInside)
-       
-        sceneView.addSubview(dismissButton)
-        // 아이콘 색상 설정 (불투명도 90%)
-        dismissButton.translatesAutoresizingMaskIntoConstraints = false // 추가 필요
-        dismissButton.backgroundColor = UIColor.black // 배경색 설정
-        dismissButton.setTitle("모델 내리기", for: .normal) // 버튼 텍스트 설정
-        
-        dismissButton.tintColor =  .white
-        // 오토레이아웃으로 위치 설정
-        NSLayoutConstraint.activate([
-            dismissButton.bottomAnchor.constraint(equalTo: self.view.bottomAnchor, constant: 50),
-            dismissButton.widthAnchor.constraint(equalToConstant: 45),
-            dismissButton.heightAnchor.constraint(equalToConstant: 45)
-        ])
-    }
-    /*
-    func setupOpenModelButton(model modelName:String) {
-        let openModelButton = UIButton(type: .system)
-        openModelButton.addTarget(self, action: #selector(loadUSDZModel(model: modelName)), for: .touchUpInside)
-       
-        self.view.addSubview(openModelButton)
-        openModelButton.translatesAutoresizingMaskIntoConstraints = false
-        // 아이콘 색상 설정 (불투명도 90%)
-        openModelButton.tintColor = .white
-        // 오토레이아웃으로 위치 설정
-        NSLayoutConstraint.activate([
-            openModelButton.trailingAnchor.constraint(equalTo: self.view.trailingAnchor, constant: -17),
-            openModelButton.bottomAnchor.constraint(equalTo: self.view.bottomAnchor, constant: -50),
-            openModelButton.widthAnchor.constraint(equalToConstant: 45),
-            openModelButton.heightAnchor.constraint(equalToConstant: 45)
-        ])
-    }
-    */
-  
-    // 모델 내리기 버튼을 누르면 객체가 내려가는 함수입니다. dismissButton과 연결합니다.
-    @objc func dismissButtonTapped() {
-        // sceneView의 씬에서 루트 노드의 모든 자식 노드를 제거
-        // forEach 문으로 루트 노드의 모든 자식노드를 돌면서 씬의 루트 노드에 있는 모든 자식 노드를 제거함
-        sceneView.scene.rootNode.childNodes.forEach { $0.removeFromParentNode() }
-    }
-    // 모델 올리기 버튼을 누르면 객체가 올라가는 함수입니다. openModelButton과 연결합니다.
-    @objc func openModelButtonTapped(model modelName: String) {
-        loadUSDZModel(model: modelName)
-    }
-    
-    func addLighting() {
-        let light = SCNLight()
-        light.type = .omni
-        light.intensity = 1000
-        let lightNode = SCNNode()
-        lightNode.light = light
-        lightNode.position = SCNVector3(x: 0, y: 10, z: 10)
-        sceneView.scene.rootNode.addChildNode(lightNode)
-
-        let ambientLight = SCNLight()
-        ambientLight.type = .ambient
-        ambientLight.intensity = 500
-        let ambientLightNode = SCNNode()
-        ambientLightNode.light = ambientLight
-        sceneView.scene.rootNode.addChildNode(ambientLightNode)
     }
     
     
@@ -209,7 +148,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, UIGestureRecognizerDe
             return
         }
         
-        addLighting()
+      
         // 노드를 올립니다
         node.load()
         // 모델의 특성에 따라 위치 조정, 스케일링 등을 초기에 할 수 있습니다. 여기서는 z축으로 -30만큼 보내게 했습니다(뒤로보냄)
@@ -242,16 +181,11 @@ class ViewController: UIViewController, ARSCNViewDelegate, UIGestureRecognizerDe
                         }
                         else {
                             candleInnerNode.isHidden = true
-                            
                         }
                     }
-                    
                 }
-                
             }
         }
-        
-        
     }
     
     
@@ -353,12 +287,11 @@ class ViewController: UIViewController, ARSCNViewDelegate, UIGestureRecognizerDe
                     let candleNodeName = "Cone_3"
                     if let candleNode = selectedNode.childNode(withName: candleNodeName, recursively: true) {
                         if let candleInnerNode = candleNode.childNode(withName: "Object_4", recursively: true) {
-                           addMoveUpDownAnimation(node: candleInnerNode)
+                            addMoveUpDownAnimation(node: candleInnerNode)
                         }
                     }
                 }
             }
-            
         case .ended, .cancelled:
             let hitResults = sceneView.hitTest(location, options: nil)
             if let hitResult = hitResults.first {
@@ -383,6 +316,4 @@ class ViewController: UIViewController, ARSCNViewDelegate, UIGestureRecognizerDe
             break
         }
     }
-    
-    
 }
